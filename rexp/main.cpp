@@ -1,4 +1,3 @@
-#include <iostream>
 #include <fstream>
 #include <string>
 #include <stack>
@@ -18,6 +17,7 @@ using state = int;
     Initial state: state initial_state
     Final state: bool is_final (checks if given state is final)
 */
+
 class NFA
 {
     public:

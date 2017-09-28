@@ -8,22 +8,24 @@
 #define NUM_ALPHABET 2
 #define EPSILON NUM_ALPHABET
 
+using state = int;
+
 class NFA
 {
     public:
-        std::set<int> transition[MAX_STATES][NUM_ALPHABET+1];
-        int initial_state;
+        std::set<state> transition[MAX_STATES][NUM_ALPHABET+1];
+        state initial_state;
         bool is_final[MAX_STATES];
 
         NFA()
         {
-            for(int i = 0; i < MAX_STATES; i++)
+            for (state i = 0; i < MAX_STATES; i++)
                 is_final[i] = false;
             initial_state = -1;
         }
 };
 
-void epsilon_closure(NFA const &nfa, std::set<int> &C);
+void epsilon_closure(NFA const &nfa, std::set<state> &C);
 std::string regexp_to_postfix(std::string regexp);
 NFA postfix_to_nfa(std::string postfix);
 std::string check(std::string input_string, NFA const &nfa);
@@ -57,16 +59,16 @@ int main()
 }
 
 
-void epsilon_closure(NFA const &nfa, std::set<int> &C)
+void epsilon_closure(NFA const &nfa, std::set<state> &C)
 {
-    std::set<int> C_temp(C);
+    std::set<state> C_temp(C);
     do
     {
         C = C_temp;
-        for(int i : C_temp)
-            for (int j : nfa.transition[i][EPSILON])
+        for(state i : C_temp)
+            for (state j : nfa.transition[i][EPSILON])
                 C_temp.insert(j);
-    } while(C_temp != C);
+    } while (C_temp != C);
 
 }
 
@@ -76,9 +78,9 @@ std::string regexp_to_postfix(std::string regexp)
 
     std::string postfix = "";
 
-    for(char &c : regexp)
+    for (char &c : regexp)
     {
-        switch(c)
+        switch (c)
         {
             case '(':
                 break;
@@ -104,19 +106,22 @@ std::string regexp_to_postfix(std::string regexp)
 NFA postfix_to_nfa(std::string postfix)
 {
     NFA nfa;
-    int j = 0;
-    std::stack<std::pair<int, int> > state_pair_stack;
+    state j = 0;
+    std::stack<std::pair<state, state> > state_pair_stack;
 
-    for(char &c : postfix)
+    for (char &c : postfix)
     {
-        switch(c)
+        switch (c)
         {
             case '0':
             case '1':
                 {
                     int alph = c - '0';
+
                     nfa.transition[j][alph].insert(j+1); // state j to j+1
+
                     nfa.is_final[j+1] = true;
+
                     state_pair_stack.push(std::make_pair(j, j+1));
                     j += 2; // for next iteration
                     break;
@@ -124,9 +129,9 @@ NFA postfix_to_nfa(std::string postfix)
 
             case '+':
                 {
-                    std::pair<int, int> state_pair2 = state_pair_stack.top();
+                    std::pair<state, state> state_pair2 = state_pair_stack.top();
                     state_pair_stack.pop();
-                    std::pair<int, int> state_pair1 = state_pair_stack.top();
+                    std::pair<state, state> state_pair1 = state_pair_stack.top();
                     state_pair_stack.pop();
 
                     nfa.transition[j][EPSILON].insert(state_pair1.first);
@@ -145,9 +150,9 @@ NFA postfix_to_nfa(std::string postfix)
 
             case '.':
                 {
-                    std::pair<int, int> state_pair2 = state_pair_stack.top();
+                    std::pair<state, state> state_pair2 = state_pair_stack.top();
                     state_pair_stack.pop();
-                    std::pair<int, int> state_pair1 = state_pair_stack.top();
+                    std::pair<state, state> state_pair1 = state_pair_stack.top();
                     state_pair_stack.pop();
 
                     nfa.transition[state_pair1.second][EPSILON].insert(state_pair2.first);
@@ -160,7 +165,7 @@ NFA postfix_to_nfa(std::string postfix)
 
             case '*':
                 {
-                    std::pair<int, int> state_pair = state_pair_stack.top();
+                    std::pair<state, state> state_pair = state_pair_stack.top();
                     state_pair_stack.pop();
 
                     nfa.transition[j][EPSILON].insert(state_pair.first);
@@ -177,7 +182,7 @@ NFA postfix_to_nfa(std::string postfix)
                 }
         }
     }
-    std::pair<int, int> state_pair = state_pair_stack.top();
+    std::pair<state, state> state_pair = state_pair_stack.top();
     nfa.initial_state = state_pair.first;
 
     return nfa;
@@ -185,25 +190,25 @@ NFA postfix_to_nfa(std::string postfix)
 
 std::string check(std::string input_string, NFA const &nfa)
 {
-    std::set<int> C, C_temp;
+    std::set<state> C, C_temp;
 
-    C.insert(nfa.initial_state); // C <- E(q0)
+    C.insert(nfa.initial_state);
     epsilon_closure(nfa, C);
 
     for (char &c : input_string)
     {
         int alph = c - '0';
         C_temp.clear();
-        for (int j : C)
-        {
-            for (int k : nfa.transition[j][alph])
+
+        for (state j : C)
+            for (state k : nfa.transition[j][alph])
                 C_temp.insert(k);
-        }
+
         C = C_temp;
         epsilon_closure(nfa, C);
     }
 
-    for (int i : C)
+    for (state i : C)
         if (nfa.is_final[i]) goto yes;
 
     return "No";

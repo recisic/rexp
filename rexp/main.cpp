@@ -4,13 +4,20 @@
 #include <stack>
 #include <set>
 
-#define MAX_STRING_LENGTH 50
-#define MAX_STATES 50
+#define MAX_STATES 60
 #define NUM_ALPHABET 2
 #define EPSILON NUM_ALPHABET
 
 using state = int;
 
+/**
+    Class for NFA (Nondeterministic Finite Automata)
+    States: max. 60 (not defined explicitly)
+    Alphabet: {0, 1} (given in problem specification)
+    Transition function: std::set<state> transition
+    Initial state: state initial_state
+    Final state: bool is_final (checks if given state is final)
+*/
 class NFA
 {
     public:
@@ -63,7 +70,11 @@ int main()
     return 0;
 }
 
-
+/**
+    Updates a set by its epsilon closure according to an NFA.
+    @param nfa given NFA
+    @param C set of states in an NFA
+*/
 void epsilon_closure(NFA const &nfa, std::set<state> &C)
 {
     std::set<state> C_temp(C);
@@ -77,6 +88,12 @@ void epsilon_closure(NFA const &nfa, std::set<state> &C)
 
 }
 
+/**
+    Changes a regular expression to postfix form by using a
+    stack for operators.
+    @param regexp regular expression
+    @return postfix form of a regular expression
+*/
 std::string regexp_to_postfix(std::string regexp)
 {
     std::stack<char> op_stack;
@@ -87,18 +104,18 @@ std::string regexp_to_postfix(std::string regexp)
     {
         switch (c)
         {
-            case '(':
+            case '(': // left parenthesis: do nothing
                 break;
             case '0':
-            case '1':
+            case '1': // alphabets: append to postfix string
                 postfix += c;
                 break;
             case '+':
             case '*':
-            case '.':
+            case '.': // operators: push to stack
                 op_stack.push(c);
                 break;
-            case ')':
+            case ')': // right parenthesis: pop and append
                 postfix += op_stack.top();
                 op_stack.pop();
                 break;
@@ -108,11 +125,17 @@ std::string regexp_to_postfix(std::string regexp)
     return postfix;
 }
 
+/**
+    Constructs an NFA from the postfix form by using a stack
+    for intermediate NFAs.
+    @param postfix postfix form of an regular expression
+    @return corresponding NFA
+*/
 NFA postfix_to_nfa(std::string postfix)
 {
     NFA nfa;
     state j = 0;
-    std::stack<std::pair<state, state> > state_pair_stack;
+    std::stack<std::pair<state, state> > state_pair_stack; // stack for NFA
 
     for (char &c : postfix)
     {
@@ -123,12 +146,12 @@ NFA postfix_to_nfa(std::string postfix)
                 {
                     int alph = c - '0';
 
-                    nfa.transition[j][alph].insert(j+1); // state j to j+1
+                    nfa.transition[j][alph].insert(j+1); // state j to state j+1
 
                     nfa.is_final[j+1] = true;
 
                     state_pair_stack.push(std::make_pair(j, j+1));
-                    j += 2; // for next iteration
+                    j += 2; // next iteration
                     break;
                 }
 
@@ -193,6 +216,12 @@ NFA postfix_to_nfa(std::string postfix)
     return nfa;
 }
 
+/**
+    Checks if an NFA accepts an input string.
+    @param input_string input string
+    @param nfa given NFA
+    @return "Yes" if nfa accepts x, "No" otherwise
+*/
 std::string check(std::string input_string, NFA const &nfa)
 {
     std::set<state> C, C_temp;
@@ -202,7 +231,7 @@ std::string check(std::string input_string, NFA const &nfa)
 
     for (char &c : input_string)
     {
-        int alph = c - '0';
+        int alph = c - '0'; // alphabet character to index
         C_temp.clear();
 
         for (state j : C)
@@ -214,7 +243,7 @@ std::string check(std::string input_string, NFA const &nfa)
     }
 
     for (state i : C)
-        if (nfa.is_final[i]) goto yes;
+        if (nfa.is_final[i]) goto yes; // if C contains a final state
 
     return "No";
 

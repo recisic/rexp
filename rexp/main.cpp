@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <stack>
 #include <set>
@@ -35,27 +36,31 @@ int main()
 {
     std::ios::sync_with_stdio(false);
 
-    /* Part 1. constructing an NFA from a regular expression */
+    std::ifstream infile("input.txt");
+    std::ofstream outfile("2017_19871.out");
 
-    std::string regexp;
-    std::getline(std::cin, regexp);
-    std::cout << "input: " << regexp << '\n';
+    int T = 0;
+    infile >> T;
 
-    std::string postfix = regexp_to_postfix(regexp);
-    std::cout << "postfix: " << postfix << '\n';
+    for (int i = 0; i < T; i++)
+    {
+        std::string regexp, input_string;
+        std::string dummy;
 
-    NFA nfa;
-    nfa = postfix_to_nfa(postfix);
+        infile >> dummy >> regexp >> input_string;
 
-    /* Part 2. running an NFA with an input string */
+        /* Part 1. constructing an NFA from a regular expression */
 
-    std::string input_string;
+        std::string postfix = regexp_to_postfix(regexp);
+        NFA nfa = postfix_to_nfa(postfix);
 
-    std::getline(std::cin, input_string);
-    std::cout << "string: " << input_string << '\n';
+        /* Part 2. running an NFA with an input string */
 
-    std::string result = check(input_string, nfa);
-    std::cout << "result: " << result;
+        std::string result = check(input_string, nfa);
+        outfile << result << '\n';
+    }
+
+    return 0;
 }
 
 

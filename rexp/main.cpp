@@ -1,6 +1,5 @@
 #include <iostream>
-#include <cstdio>
-#include <vector>
+#include <string>
 #include <stack>
 #include <set>
 
@@ -9,14 +8,12 @@
 #define NUM_ALPHABET 2
 #define EPSILON NUM_ALPHABET
 
-using namespace std;
-
 class NFA
 {
     public:
-        set<int> transition[MAX_STATES][NUM_ALPHABET+1];
-        bool is_final[MAX_STATES];
+        std::set<int> transition[MAX_STATES][NUM_ALPHABET+1];
         int initial_state;
+        bool is_final[MAX_STATES];
 
         NFA()
         {
@@ -24,72 +21,112 @@ class NFA
                 is_final[i] = false;
             initial_state = -1;
         }
-} nfa;
+};
 
-void epsilon_closure(NFA const &nfa, set<int> &C);
+void epsilon_closure(NFA const &nfa, std::set<int> &C);
+std::string regexp_to_postfix(std::string regexp);
+NFA postfix_to_nfa(std::string postfix);
+std::string check(std::string input_string, NFA const &nfa);
+
 
 int main()
 {
+    std::ios::sync_with_stdio(false);
+
     /* Part 1. constructing an NFA from a regular expression */
 
-    stack<char> op_stack;
+    std::string regexp;
+    std::getline(std::cin, regexp);
+    std::cout << "input: " << regexp << '\n';
 
-    char regexp[MAX_STRING_LENGTH];
-    scanf("%s", regexp);
+    std::string postfix = regexp_to_postfix(regexp);
+    std::cout << "postfix: " << postfix << '\n';
 
-    printf("input: %s\n", regexp);
+    NFA nfa;
+    nfa = postfix_to_nfa(postfix);
 
-    char postfix[MAX_STRING_LENGTH] = "";
-    int i = 0, j = 0;
+    /* Part 2. running an NFA with an input string */
 
-    while(regexp[i++])
+    std::string input_string;
+
+    std::getline(std::cin, input_string);
+    std::cout << "string: " << input_string << '\n';
+
+    std::string result = check(input_string, nfa);
+    std::cout << "result: " << result;
+}
+
+
+void epsilon_closure(NFA const &nfa, std::set<int> &C)
+{
+    std::set<int> C_temp(C);
+    do
     {
-        switch(regexp[i])
+        C = C_temp;
+        for(int i : C_temp)
+            for (int j : nfa.transition[i][EPSILON])
+                C_temp.insert(j);
+    } while(C_temp != C);
+
+}
+
+std::string regexp_to_postfix(std::string regexp)
+{
+    std::stack<char> op_stack;
+
+    std::string postfix = "";
+
+    for(char &c : regexp)
+    {
+        switch(c)
         {
             case '(':
                 break;
             case '0':
             case '1':
-                postfix[j++] = regexp[i];
+                postfix += c;
                 break;
             case '+':
             case '*':
             case '.':
-                op_stack.push(regexp[i]);
+                op_stack.push(c);
                 break;
             case ')':
-                postfix[j++] = op_stack.top();
+                postfix += op_stack.top();
                 op_stack.pop();
                 break;
         }
     }
 
-    printf("postfix: %s\n", postfix);
+    return postfix;
+}
 
-    i = 0;
-    j = 0;
-    stack<pair<int, int> > state_pair_stack;
+NFA postfix_to_nfa(std::string postfix)
+{
+    NFA nfa;
+    int j = 0;
+    std::stack<std::pair<int, int> > state_pair_stack;
 
-    while(postfix[i])
+    for(char &c : postfix)
     {
-        switch(postfix[i])
+        switch(c)
         {
             case '0':
             case '1':
                 {
-                    int alph = postfix[i] - '0';
+                    int alph = c - '0';
                     nfa.transition[j][alph].insert(j+1); // state j to j+1
                     nfa.is_final[j+1] = true;
-                    state_pair_stack.push(make_pair(j, j+1));
+                    state_pair_stack.push(std::make_pair(j, j+1));
                     j += 2; // for next iteration
                     break;
                 }
 
             case '+':
                 {
-                    pair<int, int> state_pair2 = state_pair_stack.top();
+                    std::pair<int, int> state_pair2 = state_pair_stack.top();
                     state_pair_stack.pop();
-                    pair<int, int> state_pair1 = state_pair_stack.top();
+                    std::pair<int, int> state_pair1 = state_pair_stack.top();
                     state_pair_stack.pop();
 
                     nfa.transition[j][EPSILON].insert(state_pair1.first);
@@ -101,29 +138,29 @@ int main()
                     nfa.is_final[state_pair2.second] = false;
                     nfa.is_final[j+1] = true;
 
-                    state_pair_stack.push(make_pair(j, j+1));
+                    state_pair_stack.push(std::make_pair(j, j+1));
                     j += 2;
                     break;
                 }
 
             case '.':
                 {
-                    pair<int, int> state_pair2 = state_pair_stack.top();
+                    std::pair<int, int> state_pair2 = state_pair_stack.top();
                     state_pair_stack.pop();
-                    pair<int, int> state_pair1 = state_pair_stack.top();
+                    std::pair<int, int> state_pair1 = state_pair_stack.top();
                     state_pair_stack.pop();
 
                     nfa.transition[state_pair1.second][EPSILON].insert(state_pair2.first);
 
                     nfa.is_final[state_pair1.second] = false;
 
-                    state_pair_stack.push(make_pair(state_pair1.first, state_pair2.second));
+                    state_pair_stack.push(std::make_pair(state_pair1.first, state_pair2.second));
                     break;
                 }
 
             case '*':
                 {
-                    pair<int, int> state_pair = state_pair_stack.top();
+                    std::pair<int, int> state_pair = state_pair_stack.top();
                     state_pair_stack.pop();
 
                     nfa.transition[j][EPSILON].insert(state_pair.first);
@@ -134,44 +171,28 @@ int main()
                     nfa.is_final[state_pair.second] = false;
                     nfa.is_final[j+1] = true;
 
-                    state_pair_stack.push(make_pair(j, j+1));
+                    state_pair_stack.push(std::make_pair(j, j+1));
                     j += 2;
                     break;
                 }
         }
-        i++;
     }
-    pair<int, int> state_pair = state_pair_stack.top();
+    std::pair<int, int> state_pair = state_pair_stack.top();
     nfa.initial_state = state_pair.first;
 
-    /* Part 2. running an NFA with an input string */
+    return nfa;
+}
 
-    set<int> C, C_temp;
-    i = 0;
-
-    char input_string[30] = "0011000";
-    printf("string: %s\n", input_string);
+std::string check(std::string input_string, NFA const &nfa)
+{
+    std::set<int> C, C_temp;
 
     C.insert(nfa.initial_state); // C <- E(q0)
     epsilon_closure(nfa, C);
 
-    /*
-    for (int i = 0; i < MAX_STATES; i++)
+    for (char &c : input_string)
     {
-        for (int j = 0; j < 3; j++)
-        {
-            for (int k : nfa.transition[i][j])
-                printf("%d ", k);
-            printf(" / ");
-        }
-        printf("%d", nfa.is_final[i]);
-        printf("\n");
-    }
-    */
-
-    while(input_string[i])
-    {
-        int alph = input_string[i] - '0';
+        int alph = c - '0';
         C_temp.clear();
         for (int j : C)
         {
@@ -180,32 +201,13 @@ int main()
         }
         C = C_temp;
         epsilon_closure(nfa, C);
-        i++;
     }
 
     for (int i : C)
-    {
-        if (nfa.is_final[i]) goto end;
-    }
+        if (nfa.is_final[i]) goto yes;
 
-    printf("No");
+    return "No";
 
-    return 0;
-
-    end:
-        printf("Yes");
-        return 0;
-}
-
-void epsilon_closure(NFA const &nfa, set<int> &C)
-{
-    set<int> C_temp(C);
-    do
-    {
-        C = C_temp;
-        for(int i : C_temp)
-            for (int j : nfa.transition[i][EPSILON])
-                C_temp.insert(j);
-    } while(C_temp != C);
-
+    yes:
+        return "Yes";
 }

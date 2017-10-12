@@ -3,7 +3,7 @@
 #include <stack>
 #include <set>
 
-#define MAX_STATES 60
+#define MAX_STATES 100
 #define NUM_ALPHABET 2
 #define EPSILON NUM_ALPHABET
 
@@ -11,11 +11,11 @@ using state = int;
 
 /**
     Class for NFA (Nondeterministic Finite Automata)
-    States: max. 60 (not defined explicitly)
+    States: max. 100 (not defined explicitly)
     Alphabet: {0, 1} (given in problem specification)
-    Transition function: std::set<state> transition
-    Initial state: state initial_state
-    Final state: bool is_final (checks if given state is final)
+    Transition function: transition (std::set<state>)
+    Initial state: initial_state (state)
+    Final state: is_final (boolean array)
 */
 
 class NFA
@@ -52,7 +52,7 @@ int main()
     for (int i = 0; i < T; i++)
     {
         std::string regexp, input_string;
-        std::string dummy;
+        std::string dummy; // dummy string used to store "rexp"
 
         infile >> dummy >> regexp >> input_string;
 
@@ -220,7 +220,7 @@ NFA postfix_to_nfa(std::string postfix)
     Checks if an NFA accepts an input string.
     @param input_string input string
     @param nfa given NFA
-    @return "Yes" if nfa accepts x, "No" otherwise
+    @return "Yes" if nfa accepts input string, "No" otherwise
 */
 std::string check(std::string input_string, NFA const &nfa)
 {
@@ -245,8 +245,8 @@ std::string check(std::string input_string, NFA const &nfa)
     for (state i : C)
         if (nfa.is_final[i]) goto yes; // if C contains a final state
 
-    return "No";
+    return "no";
 
     yes:
-        return "Yes";
+        return "yes";
 }
